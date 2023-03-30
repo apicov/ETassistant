@@ -15,3 +15,10 @@ def base64_to_pil(img_str):
     img_data = base64.b64decode(img_str)
     pil_img = Image.open(io.BytesIO(img_data))
     return pil_img
+
+
+def add_carriage_return(s, char_limit=20):
+    result = ''
+    for i in range(0, len(s), char_limit):
+        result += s[i:i + char_limit] + '\n'
+    return result.strip()

@@ -103,9 +103,14 @@ def process_image():
     
     # send the black and white image back to the client
     return output
-    
-if __name__ == '__main__':
+
+
+def main():
     app.run()
+
+
+if __name__ == '__main__':
+    main()
 
 
 

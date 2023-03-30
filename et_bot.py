@@ -49,7 +49,7 @@ def handle_photo(update, context):
     # Convert the bytes to a PIL image
     pil_image = Image.open(image_bytes)
 
-    update.message.reply_text("me ha llegao la imagen, esperad respuesta")
+    update.message.reply_text("Processing image. Please wait...")
 
     #send request to clip searcher
     url = 'http://127.0.0.1:5000/similar_im2im_all'

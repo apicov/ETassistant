@@ -15,6 +15,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 
+from utils import add_carriage_return
 
 
 class CLIPSearcher():
@@ -115,18 +116,83 @@ class CLIPSearcher():
 #------------------
 
 
-
 def plot_images(df, images_path, with_distance=True, rows=False):
     #plots images of items in dataframe
     #limit to a maximum number of 15 images
     nimages = min(15, df.shape[0])
 
+    figsize = (40, 50) # width, height
     if rows:
         #plot images in a row
-        fig, axarr = plt.subplots(1, nimages, figsize=(20, 20));
+        fig, axarr = plt.subplots(1, nimages, figsize=figsize);
     else:
         #plot images in a column
-        fig, axarr = plt.subplots(nimages, 1, figsize=(20, 20));
+        fig, axarr = plt.subplots(nimages, 1, figsize=figsize);
+
+    for i, (df_index, row) in enumerate(df.iterrows()):
+        # extract image path from shopname and itemid columns 
+        image_path = images_path / (row['ShopName'] + '_' + str(row['ItemId']) + '.jpg')
+        image = Image.open(image_path)
+
+        axarr[i].imshow(image);
+        axarr[i].axis('off');
+        bestseller_mark = '*Bestseller*\n\n' if row['IsBestseller'] else ''
+
+    
+        out_message = f'''{bestseller_mark}Shop: {row['ShopName']}
+
+ItemID: {row['ItemId']}
+
+Title:
+{add_carriage_return(row['ItemName'], char_limit=25)}
+
+Reviews: {row['NumReviews']}
+
+Distance: {row['Distance']:.4f}
+'''
+        
+        axarr[i].annotate(out_message, xy=(1, 0.5), xycoords='axes fraction', fontsize=60,
+                     horizontalalignment='left', verticalalignment='center')
+        '''
+        if with_distance:
+            # Prints also embeddings distance in title
+            axarr[i].set_title(
+                f"{bestseller_mark}Shop: {row['ShopName']} ItemID:{row['ItemId']}\n{row['ItemName']}\nReviews: {row['NumReviews']} {row['Distance']:.4f}",
+                 fontsize=60);
+        else:
+            axarr[i].set_title(
+                f"{bestseller_mark}{row['ShopName']}\n{row['ItemId']}\n{row['ItemName'][:15]}\nrevs: {row['NumReviews']}",
+                 fontsize=24);
+        '''
+            
+    plt.tight_layout();
+
+    # Return plot as a PIL image
+    # render the plot onto a buffer
+    buf = io.BytesIO()
+    fig.savefig(buf,bbox_inches='tight', pad_inches=0)#, dpi=dpi)
+    buf.seek(0)
+    return PIL.Image.open(buf).convert('RGB')
+
+
+
+
+
+
+
+'''
+def plot_images(df, images_path, with_distance=True, rows=False):
+    #plots images of items in dataframe
+    #limit to a maximum number of 15 images
+    nimages = min(15, df.shape[0])
+
+    figsize = (40, 50) # width, height
+    if rows:
+        #plot images in a row
+        fig, axarr = plt.subplots(1, nimages, figsize=figsize);
+    else:
+        #plot images in a column
+        fig, axarr = plt.subplots(nimages, 1, figsize=figsize);
 
     for i, (df_index, row) in enumerate(df.iterrows()):
         # extract image path from shopname and itemid columns 
@@ -136,22 +202,32 @@ def plot_images(df, images_path, with_distance=True, rows=False):
         axarr[i].imshow(image);
         axarr[i].axis('off');
         bestseller_mark = '*' if row['IsBestseller'] else ''
-
+        
         if with_distance:
             # Prints also embeddings distance in title
             axarr[i].set_title(
-                f"{bestseller_mark}{row['ShopName']}\n{row['ItemId']}\n{row['ItemName'][:15]}\nrevs: {row['NumReviews']}\n{row['Distance']:.4f}",
-                 fontsize=8);
+                f"{bestseller_mark}Shop: {row['ShopName']} ItemID:{row['ItemId']}\n{row['ItemName']}\nReviews: {row['NumReviews']} {row['Distance']:.4f}",
+                 fontsize=60);
         else:
             axarr[i].set_title(
                 f"{bestseller_mark}{row['ShopName']}\n{row['ItemId']}\n{row['ItemName'][:15]}\nrevs: {row['NumReviews']}",
-                 fontsize=8);
+                 fontsize=24);
+        
             
     plt.tight_layout();
+
+    # set the figure with a specific size and dpi
+    #output_width = 600
+    #output_height = 1200
+    #dpi = 200
+    #output_width_inches = output_width / dpi
+    #output_height_inches = output_height / dpi
+    #plt.gcf().set_size_inches(output_width_inches, output_height_inches)
 
     # Return plot as a PIL image
     # render the plot onto a buffer
     buf = io.BytesIO()
-    fig.savefig(buf,bbox_inches='tight', pad_inches=0)
+    fig.savefig(buf,bbox_inches='tight', pad_inches=0)#, dpi=dpi)
     buf.seek(0)
     return PIL.Image.open(buf).convert('RGB')
+    '''
