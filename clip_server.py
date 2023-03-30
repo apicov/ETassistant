@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 import cv2
 
-from ClipSearcher import CLIPSearcher , plot_images
+from ClipSearcher import CLIPSearcher , create_clip_model, plot_images
 from utils import pil_to_base64, base64_to_pil, tags_from_df
 import base64
 
@@ -16,20 +16,30 @@ pd.set_option("display.max_columns", 10)
 
 #open products data
 print('Loading data...')
-df = pd.read_parquet('./data/all_clip_embeddings.parquet')
+df_all = pd.read_parquet('./data/all_clip_embeddings.parquet')
 
 # Filter dataframe to have only popular items
 # they must have 100 or more reviews
-df = df[df['NumReviews'] >= 100]
-print('n items', df.shape)
+#df_popular = df_all[df_all['NumReviews'] >= 100]
+df_popular = df_all[df_all['IsBestseller'] == 1]
+print('all', df_all.shape, 'popular', df_popular.shape)
 
 # set path of stored images
 root_path = Path('/vol/fob-vol6/mi13/pivillaa/code/stitches_workspace/etsy_dataset')
 images_path = root_path / 'all_images'
 
-# create clip searcher with df
+# create clip model
+clip_model = create_clip_model()
+# create clip searchers for all and popular lists
 print('Creating clip model...')
-searcher = CLIPSearcher(df)
+all_searcher = CLIPSearcher(df_all, clip_model=clip_model)
+popular_searcher = CLIPSearcher(df_popular, clip_model=clip_model)
+
+# sets server for search in all the database or only popular items, default all
+search_mode = 'all' #all, popular
+# sets the search space. search of queries for similar images, tags , or item name. default images
+search_space = 'images'  #images,tags,names
+
 
 
 
@@ -39,6 +49,8 @@ app = Flask(__name__)
 # cointaning similar products from the complete database
 @app.route('/clip_query', methods=['POST'])
 def process_clip_query():
+    global search_mode
+    global search_space
     #check if query is text or image
     if request.json['msg_type'] == 'image':
         img_str = request.json['image']
@@ -48,11 +60,37 @@ def process_clip_query():
     else:
         txt = request.json['text']
         query = txt
-    
-    # convert query to embeddings and prepare it for querying
-    searcher.gen_query(query)
-    # search for similar images
-    df_result = searcher.search_in_images(3)
+
+ 
+    # use the right searcher for the search mode
+    if search_mode == 'all':
+        # convert query to embeddings and prepare it for querying
+        all_searcher.gen_query(query)
+
+        # search for similar
+        if search_space == 'images':
+            df_result = all_searcher.search_in_images(3)
+        elif search_space == 'tags':
+            df_result = all_searcher.search_in_tags(3)
+        else:
+            df_result = all_searcher.search_in_names(3)
+
+        print('all', search_space)
+
+    else:
+        # convert query to embeddings and prepare it for querying
+        popular_searcher.gen_query(query)
+        
+        # search for similar
+        if search_space == 'images':
+            df_result = popular_searcher.search_in_images(3)
+        elif search_space == 'tags':
+            df_result = popular_searcher.search_in_tags(3)
+        else:
+            df_result = popular_searcher.search_in_names(3)
+
+        print('popular', search_space)
+
     print(df_result)
 
     # plot items in dataframe
@@ -73,26 +111,49 @@ def process_clip_query():
     }
     return jsonify(response)
 
+# sets server for search in all the database or only popular items
+#all, popular
+@app.route('/set_search_mode', methods=['POST'])
+def set_search_mode():
+    global search_mode    
+    #changes search mode to all or only popular items in list
+    if request.json['search_mode'] == 'all':
+        search_mode = 'all'
+        print('set search to all')
+    else:
+        search_mode = 'popular'
+        print('set search to popular')
+
+    response = {
+        "status": "success",
+        "message": f"search mode set to {search_mode}",
+    }
+    return jsonify(response)
+
+# sets the search space. search of queries for similar images, tags , or item name. default images
+# images,tags,names
+@app.route('/set_search_space', methods=['POST'])
+def set_search_space():
+    global search_space    
+    #changes search space to images, tags , or item names
+    if request.json['search_space'] == 'images':
+        search_space = 'images'
+        print('set search space to images')
+    elif request.json['search_space'] == 'tags':
+        search_space = 'tags'
+        print('set search space to item tags')
+    else:
+        search_space = 'names'
+        print('set search space to item names')
+
+    response = {
+        "status": "success",
+        "message": f"search space set to {search_space}",
+    }
+    return jsonify(response)
 
 
-
-
-
-
-    # save the image to a buffer
-    buffer = io.BytesIO()
-    img_results.save(buffer, format='PNG')
-    # convert the buffer to bytes
-    buffer.seek(0)
-    output = buffer.getvalue()
-    
-    
-    return output
-
-
-
-
-
+'''
 @app.route('/process_image', methods=['POST'])
 def process_image():
     # receive the image from the client
@@ -119,7 +180,7 @@ def process_image():
     
     # send the black and white image back to the client
     return output
-
+'''
 
 def main():
     app.run()

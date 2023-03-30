@@ -18,6 +18,10 @@ from sentence_transformers import SentenceTransformer
 from utils import add_carriage_return
 
 
+def create_clip_model():
+    clip_model = SentenceTransformer('clip-ViT-B-32')
+    return clip_model
+
 class CLIPSearcher():
     # class for searching similar CLIP embeddings in data in dataframe df
     def __init__(self, df, clip_model=None):

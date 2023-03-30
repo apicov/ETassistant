@@ -17,6 +17,11 @@ import os
 from pathlib import Path
 import datetime
 
+# sets server for search in all the database or only popular items, default all
+search_mode = 'all' #all, popular
+# sets the search space. search of queries for similar images, tags , or item name. default images
+search_space = 'images'  #images,tags,names
+
 
 def save_im_timestamp(img, name, chat_id, folder_path):
     # Get the current date and time
@@ -36,6 +41,35 @@ def save_text_timestamp(text, name, chat_id, folder_path):
     with open(file_name, "w") as text_file:
         text_file.write(text)
 
+def set_search_mode(mode):
+    # sets servers search mode
+    global search_mode
+    search_mode = mode
+
+    #send request to clip searcher
+    url = 'http://127.0.0.1:5000/set_search_mode'
+    # send  text to the server
+    payload = {"search_mode": mode}
+    response = requests.post(url, json=payload)
+
+    msg = response.json()['message']
+    return msg
+
+
+def set_search_space(mode):
+    # sets servers search space
+    global search_space
+    search_space = mode
+
+    #send request to clip searcher
+    url = 'http://127.0.0.1:5000/set_search_space'
+    # send  text to the server
+    payload = {"search_space": mode}
+    response = requests.post(url, json=payload)
+
+    msg = response.json()['message']
+    return msg
+
 
 with open("private_data.json", "r") as read_file:
     data = json.load(read_file)
@@ -51,7 +85,36 @@ def help(update, context):
     /help - dhsd
     """)
 
+def set_search_popular(update, context): 
+    msg = set_search_mode('popular')
+    update.message.reply_text(msg)
+
+def set_search_all(update, context):
+    msg = set_search_mode('all')
+    update.message.reply_text(msg)
+
+def set_image_space(update, context):
+    msg = set_search_space('images')
+    update.message.reply_text(msg)
+
+def set_tag_space(update, context):
+    msg = set_search_space('tags')
+    update.message.reply_text(msg)
+
+def set_name_space(update, context):
+    msg = set_search_space('names')
+    update.message.reply_text(msg)
+
+
 def handle_message(update, context):
+    global search_mode
+    global search_space
+    print(search_mode, search_space)
+
+    # synchronize search mode and space with server
+    set_search_mode(search_mode)
+    set_search_space(search_space)
+
     # Get the message text
     message_text = update.message.text
 
@@ -86,10 +149,17 @@ def handle_message(update, context):
 def handle_photo(update, context):
     # Check if the message contains an image
     #if update.message.photo:
-
     # Save the image to disk
     #file.download('image.jpg')
-    
+    global search_mode
+    global search_space
+    print(search_mode, search_space)
+
+    # synchronize search mode and space with server
+    set_search_mode(search_mode)
+    set_search_space(search_space)
+
+      
     file_id = update.message.photo[-1].file_id
     file = context.bot.get_file(file_id)
 
@@ -178,11 +248,15 @@ updater = Updater(TOKEN, use_context=True)
 dp = updater.dispatcher
 
 dp.add_handler(CommandHandler("start", start))
-
+dp.add_handler(CommandHandler('searchpopular', set_search_popular))
+dp.add_handler(CommandHandler('searchall', set_search_all))
+dp.add_handler(CommandHandler('imagespace', set_image_space))
+dp.add_handler(CommandHandler('tagspace', set_tag_space))
+dp.add_handler(CommandHandler('namespace', set_name_space))
 
 dp.add_handler(MessageHandler(Filters.text, handle_message))
 dp.add_handler(MessageHandler(Filters.photo, handle_photo))
-#dp.add_handler(CommandHandler('sendimage', send_image))
+
 
 updater.start_polling()
 updater.idle()
