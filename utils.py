@@ -22,3 +22,14 @@ def add_carriage_return(s, char_limit=20):
     for i in range(0, len(s), char_limit):
         result += s[i:i + char_limit] + '\n'
     return result.strip()
+
+
+def tags_from_df(df):
+    # extract tags in dataframe and put them in a string
+    str_tags = 'Items tags\n'
+    for idx, row in df.iterrows():
+        # #replace semicolon and space beween tags with a \n
+        tags = row['Tags'].replace('; ','\n')
+        str_tags += f"--------{row['ShopName']}--------\n{tags}\n"
+
+    return str_tags

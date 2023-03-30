@@ -146,9 +146,7 @@ ItemID: {row['ItemId']}
 Title:
 {add_carriage_return(row['ItemName'], char_limit=25)}
 
-Reviews: {row['NumReviews']}
-
-Distance: {row['Distance']:.4f}
+Reviews: {row['NumReviews']}  {row['Distance']:.4f}
 '''
         
         axarr[i].annotate(out_message, xy=(1, 0.5), xycoords='axes fraction', fontsize=60,

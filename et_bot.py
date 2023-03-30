@@ -14,6 +14,29 @@ import json
 import cv2
 import os
 
+from pathlib import Path
+import datetime
+
+
+def save_im_timestamp(img, name, chat_id, folder_path):
+    # Get the current date and time
+    now = datetime.datetime.now()
+    # Format the date and time as a string suitable for a file name
+    date_time_string = now.strftime('%Y-%m-%d_%H-%M-%S')
+    img.save(folder_path / (date_time_string + '_' + str(chat_id) + '_' + name +'.jpg'))
+
+def save_text_timestamp(text, name, chat_id, folder_path):
+    # Get the current date and time
+    now = datetime.datetime.now()
+    # Format the date and time as a string suitable for a file name
+    date_time_string = now.strftime('%Y-%m-%d_%H-%M-%S')
+    # create file name
+    file_name = folder_path / (date_time_string + '_' + str(chat_id) + '_' + name +'.txt')
+    # save string
+    with open(file_name, "w") as text_file:
+        text_file.write(text)
+
+
 with open("private_data.json", "r") as read_file:
     data = json.load(read_file)
 
@@ -29,7 +52,36 @@ def help(update, context):
     """)
 
 def handle_message(update, context):
-    update.message.reply_text("bbb")
+    # Get the message text
+    message_text = update.message.text
+
+    update.message.reply_text("Processing query. Please wait...")
+
+    save_text_timestamp(message_text, 'q' ,str(update.message.chat_id), Path('../bot_images'))
+
+    #send request to clip searcher
+    url = 'http://127.0.0.1:5000/clip_query'
+    # send  text to the server
+    payload = {"msg_type":'text', "text": message_text}
+    response = requests.post(url, json=payload)
+
+    # send the received item tags to client
+    tags = response.json()['tags']
+    update.message.reply_text(tags)
+
+    # Get the base64 encoded image data from the request
+    img_str = response.json()['processed_image']
+    r_im = base64_to_pil(img_str)
+    # save answer image
+    save_im_timestamp(r_im, 'a' ,str(update.message.chat_id), Path('../bot_images'))
+    # Convert the resized image back to a byte stream
+    img_byte_arr = BytesIO()
+    r_im.save(img_byte_arr, format='JPEG')
+    img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+    # send resulting image to client
+    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr)
+
+
 
 def handle_photo(update, context):
     # Check if the message contains an image
@@ -49,28 +101,37 @@ def handle_photo(update, context):
     # Convert the bytes to a PIL image
     pil_image = Image.open(image_bytes)
 
-    update.message.reply_text("Processing image. Please wait...")
+    # save it to drive
+    save_im_timestamp(pil_image, 'q' ,str(update.message.chat_id), Path('../bot_images'))
+
+    update.message.reply_text("Processing query. Please wait...")
 
     #send request to clip searcher
-    url = 'http://127.0.0.1:5000/similar_im2im_all'
+    url = 'http://127.0.0.1:5000/clip_query'
     img_str = pil_to_base64(pil_image)
     # send the image to the server
-    payload = {"image": img_str}
+    payload = {"msg_type":'image', "image": img_str}
     response = requests.post(url, json=payload)
+
+    # send the received item tags to client
+    tags = response.json()['tags']
+    update.message.reply_text(tags)
 
     # Get the base64 encoded image data from the request
     img_str = response.json()['processed_image']
     r_im = base64_to_pil(img_str)
-    #r_im.save('miimage.jpg')
-
+    # save answer image
+    save_im_timestamp(r_im, 'a' ,str(update.message.chat_id), Path('../bot_images'))
     # Convert the resized image back to a byte stream
     img_byte_arr = BytesIO()
     r_im.save(img_byte_arr, format='JPEG')
     img_byte_arr.seek(0)  # Reset the file pointer to the beginning
-
+    # send resulting image to client
     context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr)
 
+    
 
+'''
 # Define a function to send images to the user
 def send_image(update, context):
     # Read the image from disk
@@ -81,6 +142,7 @@ def send_image(update, context):
     else:
         # Send an error message if the image file does not exist
         update.message.reply_text('No image found.')
+'''
 
 '''
 # assume you have a PIL image object named pil_image
@@ -120,7 +182,7 @@ dp.add_handler(CommandHandler("start", start))
 
 dp.add_handler(MessageHandler(Filters.text, handle_message))
 dp.add_handler(MessageHandler(Filters.photo, handle_photo))
-dp.add_handler(CommandHandler('sendimage', send_image))
+#dp.add_handler(CommandHandler('sendimage', send_image))
 
 updater.start_polling()
 updater.idle()
