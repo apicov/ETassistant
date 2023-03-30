@@ -154,4 +154,4 @@ def plot_images(df, images_path, with_distance=True, rows=False):
     buf = io.BytesIO()
     fig.savefig(buf,bbox_inches='tight', pad_inches=0)
     buf.seek(0)
-    return PIL.Image.open(buf)
+    return PIL.Image.open(buf).convert('RGB')

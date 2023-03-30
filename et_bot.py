@@ -4,6 +4,11 @@ from telegram import InputFile
 from io import BytesIO
 import numpy as np
 
+from utils import pil_to_base64, base64_to_pil
+import requests
+from skimage.io import imread
+from PIL import Image
+
 import requests
 import json
 import cv2
@@ -36,26 +41,34 @@ def handle_photo(update, context):
     file_id = update.message.photo[-1].file_id
     file = context.bot.get_file(file_id)
 
+    # Download the image as bytes
+    image_bytes = BytesIO()
+    file.download(out=image_bytes)
+    image_bytes.seek(0)
 
-    f = BytesIO(file.download_as_bytearray())
-    file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+    # Convert the bytes to a PIL image
+    pil_image = Image.open(image_bytes)
 
-    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-    #img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    #img = cv2.resize(img, (32, 32), interpolation=cv2.INTER_AREA)
+    update.message.reply_text("me ha llegao la imagen, esperad respuesta")
 
-    cv2.imwrite('test_image.jpg', img)
-    # Convert the OpenCV image to a PIL Image object
-    #pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    
-    update.message.reply_text("me ha llegao la imagen")
+    #send request to clip searcher
+    url = 'http://127.0.0.1:5000/similar_im2im_all'
+    img_str = pil_to_base64(pil_image)
+    # send the image to the server
+    payload = {"image": img_str}
+    response = requests.post(url, json=payload)
 
-    # assume 'photo' is the PhotoSize object received from Telegram
-    #file_bytes = photo.get_file().download_as_bytearray()
-    # convert the byte data into a numpy array
-    #np_array = np.frombuffer(file_bytes, np.uint8)
-    # convert the numpy array into a PIL image
-    #pil_img = Image.open(BytesIO(np_array))
+    # Get the base64 encoded image data from the request
+    img_str = response.json()['processed_image']
+    r_im = base64_to_pil(img_str)
+    #r_im.save('miimage.jpg')
+
+    # Convert the resized image back to a byte stream
+    img_byte_arr = BytesIO()
+    r_im.save(img_byte_arr, format='JPEG')
+    img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+
+    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr)
 
 
 # Define a function to send images to the user

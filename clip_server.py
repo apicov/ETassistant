@@ -1,12 +1,81 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
 from PIL import Image
 import io
 import numpy as np
+import pandas as pd
+from pathlib import Path
 import cv2
+
+from ClipSearcher import CLIPSearcher , plot_images
+from utils import pil_to_base64, base64_to_pil
+import base64
+
+
+pd.set_option("display.max_rows", 10)
+pd.set_option("display.max_columns", 10)
+
+#open products data
+print('Loading data...')
+df = pd.read_parquet('./data/all_clip_embeddings.parquet')
+root_path = Path('/vol/fob-vol6/mi13/pivillaa/code/stitches_workspace/etsy_dataset')
+images_path = root_path / 'all_images'
+# create clip searcher with df
+print('Creating clip model...')
+searcher = CLIPSearcher(df)
 
 
 
 app = Flask(__name__)
+
+# gets an image and returns an image 
+# cointaning similar products from the complete database
+@app.route('/similar_im2im_all', methods=['POST'])
+def process_similar_im2im_all():
+    # receive the image from the client
+    #file = request.files['image'].read()
+    img_str = request.json['image']
+
+    # Convert the received base64 encoded string to a PIL image
+    img = base64_to_pil(img_str)
+    
+    # convert image to embeddings and prepare it for querying
+    searcher.gen_query(img)
+    # search for similar images
+    df_result = searcher.search_in_images(3)
+    print(df_result)
+    # plot items in dataframe
+    img_results = plot_images(df_result, images_path)
+
+    # Convert the processed PIL image to a base64 encoded string
+    processed_img_str = pil_to_base64(img_results)
+
+    # Respond with the processed image as a base64 encoded string
+    response = {
+        "status": "success",
+        "message": "Image received and processed successfully",
+        "processed_image": processed_img_str
+    }
+    return jsonify(response)
+
+
+
+
+
+
+
+    # save the image to a buffer
+    buffer = io.BytesIO()
+    img_results.save(buffer, format='PNG')
+    # convert the buffer to bytes
+    buffer.seek(0)
+    output = buffer.getvalue()
+    
+    
+    return output
+
+
+
+
 
 @app.route('/process_image', methods=['POST'])
 def process_image():

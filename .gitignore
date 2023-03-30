@@ -128,5 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+
+#custom
+data/
 #private data
 *private_data.*
