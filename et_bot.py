@@ -81,8 +81,13 @@ def start(update, context):
 
 def help(update, context):
     update.message.reply_text("""
-    /start - dkjd
-    /help - dhsd
+    /start - start
+    /help - displays help
+    /searchpopular - popular items search
+    /searchall - all items search
+    /imagespace - images space search
+    /tagspace - tags space search
+    /namespace - names space search
     """)
 
 def set_search_popular(update, context): 
@@ -248,6 +253,7 @@ updater = Updater(TOKEN, use_context=True)
 dp = updater.dispatcher
 
 dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CommandHandler("help", help))
 dp.add_handler(CommandHandler('searchpopular', set_search_popular))
 dp.add_handler(CommandHandler('searchall', set_search_all))
 dp.add_handler(CommandHandler('imagespace', set_image_space))
