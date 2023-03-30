@@ -149,19 +149,10 @@ Title:
 Reviews: {row['NumReviews']}  {row['Distance']:.4f}
 '''
         
-        axarr[i].annotate(out_message, xy=(1, 0.5), xycoords='axes fraction', fontsize=60,
+        # Write image data on the side
+        axarr[i].annotate(out_message, xy=(1.1, 0.5), xycoords='axes fraction', fontsize=60,
                      horizontalalignment='left', verticalalignment='center')
-        '''
-        if with_distance:
-            # Prints also embeddings distance in title
-            axarr[i].set_title(
-                f"{bestseller_mark}Shop: {row['ShopName']} ItemID:{row['ItemId']}\n{row['ItemName']}\nReviews: {row['NumReviews']} {row['Distance']:.4f}",
-                 fontsize=60);
-        else:
-            axarr[i].set_title(
-                f"{bestseller_mark}{row['ShopName']}\n{row['ItemId']}\n{row['ItemName'][:15]}\nrevs: {row['NumReviews']}",
-                 fontsize=24);
-        '''
+    #xytext=(0.2, 0),
             
     plt.tight_layout();
 
