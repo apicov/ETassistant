@@ -88,6 +88,7 @@ def help(update, context):
     /imagespace - images space search
     /tagspace - tags space search
     /namespace - names space search
+    /searchmode - show search mode
     """)
 
 def set_search_popular(update, context): 
@@ -109,6 +110,12 @@ def set_tag_space(update, context):
 def set_name_space(update, context):
     msg = set_search_space('names')
     update.message.reply_text(msg)
+
+def show_search_mode(update, context):
+    global search_mode
+    global search_space
+    # displays current search configuration
+    update.message.reply_text(f'search : {search_mode} in {search_space}')
 
 
 def handle_message(update, context):
@@ -259,6 +266,7 @@ dp.add_handler(CommandHandler('searchall', set_search_all))
 dp.add_handler(CommandHandler('imagespace', set_image_space))
 dp.add_handler(CommandHandler('tagspace', set_tag_space))
 dp.add_handler(CommandHandler('namespace', set_name_space))
+dp.add_handler(CommandHandler('searchmode', show_search_mode))
 
 dp.add_handler(MessageHandler(Filters.text, handle_message))
 dp.add_handler(MessageHandler(Filters.photo, handle_photo))
