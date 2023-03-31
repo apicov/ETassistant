@@ -85,6 +85,7 @@ def help(update, context):
     /help - displays help
     /searchpopular - popular items search
     /searchall - all items search
+    /searchetsy - etsy search
     /imagespace - images space search
     /tagspace - tags space search
     /namespace - names space search
