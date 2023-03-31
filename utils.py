@@ -41,3 +41,33 @@ def etsy_sites_from_df(df):
     for i, (df_index, row) in enumerate(df.iterrows()):
         sites += f"{i+1}.- https://www.etsy.com/de-en/listing/{row['ItemId']}/\n\n"
     return sites
+
+def get_tags_for_etsy_query(df, n, only_first=True):
+    # take the n tag s of each item and 
+    # puts it in a url for etsy search
+    base_url = 'https://www.etsy.com/de-en/search?q={}&ref=search_bar'
+    tags  = []
+    for i, (df_index, row) in enumerate(df.iterrows()):
+        #get first n tags of set of tags in item
+        try: 
+            first_tags = ' '.join(row['Tags'].split('; ')[:n])
+        except KeyboardInterrupt:
+            # Handle the KeyboardInterrupt separately, if needed
+            print("\nCtrl+C detected. Exiting gracefully...")
+            exit()
+        except Exception as e:
+            # Handle other exceptions here
+            print(f"An unexpected error occurred: {e}")
+            first_tags = ''
+
+        tags.append(first_tags)
+        
+        # if only first is true, only takes tags from  first item
+        if only_first:
+            break
+        
+    #join tags with a + separator for query
+    jtags = '+'.join(tags)
+    # replace extra spaces with +
+    jtags = jtags.replace(' ','+')
+    return base_url.format(jtags)

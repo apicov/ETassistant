@@ -99,6 +99,10 @@ def set_search_all(update, context):
     msg = set_search_mode('all')
     update.message.reply_text(msg)
 
+def set_search_etsy(update, context):
+    msg = set_search_mode('etsy')
+    update.message.reply_text(msg)
+
 def set_image_space(update, context):
     msg = set_search_space('images')
     update.message.reply_text(msg)
@@ -140,24 +144,33 @@ def handle_message(update, context):
     payload = {"msg_type":'text', "text": message_text}
     response = requests.post(url, json=payload)
 
-    # send the received item tags to client
-    tags = response.json()['tags']
-    update.message.reply_text(tags)
+    # if search mode is etsy, send only query url to telegram client
+    if response.json()['search_mode'] == 'etsy':
+        query_url = response.json()['etsy_sites']
+        # save response
+        save_text_timestamp(query_url, 'a' ,str(update.message.chat_id), Path('../bot_images'))
+        # send message to telegram client
+        update.message.reply_text(query_url)
 
-    # Get the base64 encoded image data from the request
-    img_str = response.json()['processed_image']
-    r_im = base64_to_pil(img_str)
-    # save answer image
-    save_im_timestamp(r_im, 'a' ,str(update.message.chat_id), Path('../bot_images'))
-    # Convert the resized image back to a byte stream
-    img_byte_arr = BytesIO()
-    r_im.save(img_byte_arr, format='JPEG')
-    img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+    else:
+        # send the received item tags to client
+        tags = response.json()['tags']
+        update.message.reply_text(tags)
 
-    # get etsy sites from response and add them as image captions
-    etsy_sites = response.json()['etsy_sites']
-    # send resulting image to client
-    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr, caption=etsy_sites)
+        # Get the base64 encoded image data from the request
+        img_str = response.json()['processed_image']
+        r_im = base64_to_pil(img_str)
+        # save answer image
+        save_im_timestamp(r_im, 'a' ,str(update.message.chat_id), Path('../bot_images'))
+        # Convert the resized image back to a byte stream
+        img_byte_arr = BytesIO()
+        r_im.save(img_byte_arr, format='JPEG')
+        img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+
+        # get etsy sites from response and add them as image captions
+        etsy_sites = response.json()['etsy_sites']
+        # send resulting image to client
+        context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr, caption=etsy_sites)
 
 
 
@@ -198,24 +211,34 @@ def handle_photo(update, context):
     payload = {"msg_type":'image', "image": img_str}
     response = requests.post(url, json=payload)
 
-    # send the received item tags to client
-    tags = response.json()['tags']
-    update.message.reply_text(tags)
 
-    # Get the base64 encoded image data from the request
-    img_str = response.json()['processed_image']
-    r_im = base64_to_pil(img_str)
-    # save answer image
-    save_im_timestamp(r_im, 'a' ,str(update.message.chat_id), Path('../bot_images'))
-    # Convert the resized image back to a byte stream
-    img_byte_arr = BytesIO()
-    r_im.save(img_byte_arr, format='JPEG')
-    img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+    # if search mode is etsy, send only query url to telegram client
+    if response.json()['search_mode'] == 'etsy':
+        query_url = response.json()['etsy_sites']
+        # save response
+        save_text_timestamp(query_url, 'a' ,str(update.message.chat_id), Path('../bot_images'))
+        # send message to telegram client
+        update.message.reply_text(query_url)
 
-    # get etsy sites from response and add them as image captions
-    etsy_sites = response.json()['etsy_sites']
-    # send resulting image to client
-    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr,caption=etsy_sites)
+    else:
+        # send the received item tags to telegram client
+        tags = response.json()['tags']
+        update.message.reply_text(tags)
+
+        # Get the base64 encoded image data from the request
+        img_str = response.json()['processed_image']
+        r_im = base64_to_pil(img_str)
+        # save answer image
+        save_im_timestamp(r_im, 'a' ,str(update.message.chat_id), Path('../bot_images'))
+        # Convert the resized image back to a byte stream
+        img_byte_arr = BytesIO()
+        r_im.save(img_byte_arr, format='JPEG')
+        img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+
+        # get etsy sites from response and add them as image captions
+        etsy_sites = response.json()['etsy_sites']
+        # send resulting image to client
+        context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr,caption=etsy_sites)
 
     
 
@@ -269,6 +292,7 @@ dp.add_handler(CommandHandler("start", start))
 dp.add_handler(CommandHandler("help", help))
 dp.add_handler(CommandHandler('searchpopular', set_search_popular))
 dp.add_handler(CommandHandler('searchall', set_search_all))
+dp.add_handler(CommandHandler('searchetsy', set_search_etsy))
 dp.add_handler(CommandHandler('imagespace', set_image_space))
 dp.add_handler(CommandHandler('tagspace', set_tag_space))
 dp.add_handler(CommandHandler('namespace', set_name_space))
