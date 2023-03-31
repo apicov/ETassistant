@@ -25,7 +25,9 @@ df_popular = df_all[df_all['IsBestseller'] == 1]
 print('all', df_all.shape, 'popular', df_popular.shape)
 
 # set path of stored images
-root_path = Path('/vol/fob-vol6/mi13/pivillaa/code/stitches_workspace/etsy_dataset')
+#root_path = Path('/vol/fob-vol6/mi13/pivillaa/code/stitches_workspace/etsy_dataset')
+root_path = Path('/home/pico/code/stitches_workspace/etsy_dataset')
+
 images_path = root_path / 'all_images'
 
 # create clip model
