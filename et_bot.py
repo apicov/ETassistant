@@ -135,25 +135,19 @@ def handle_message(update, context):
     # Get the message text
     message_text = update.message.text
 
-    update.message.reply_text("Processing query. Please wait...")
-
     save_text_timestamp(message_text, 'q' ,str(update.message.chat_id), Path('../bot_images'))
 
-    #send request to clip searcher
-    url = 'http://127.0.0.1:5000/clip_query'
-    # send  text to the server
-    payload = {"msg_type":'text', "text": message_text}
-    response = requests.post(url, json=payload)
+    # do  regular query if search mode is not etsy
+    if search_mode != 'etsy': #response.json()['search_mode'] != 'etsy':
 
-    # if search mode is etsy, send only query url to telegram client
-    if response.json()['search_mode'] == 'etsy':
-        query_url = response.json()['etsy_queries']
-        # save response
-        save_text_timestamp(query_url, 'a' ,str(update.message.chat_id), Path('../bot_images'))
-        # send message to telegram client
-        update.message.reply_text(query_url)
+        update.message.reply_text("Processing query. Please wait...")
 
-    else:
+        #send request to clip searcher
+        url = 'http://127.0.0.1:5000/clip_query'
+        # send  text to the server
+        payload = {"msg_type":'text', "text": message_text}
+        response = requests.post(url, json=payload)
+
         # send the received item tags to client
         tags = response.json()['tags']
         update.message.reply_text(tags)
@@ -173,6 +167,14 @@ def handle_message(update, context):
         # send resulting image to client
         context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr, caption=etsy_sites)
 
+    else:
+        # if it is in etsy mode , simply use message to generate etsy querie (move it to server!)
+        #query_url = response.json()['etsy_queries']
+        query_url = f"https://www.etsy.com/de-en/search?q={message_text.replace(' ','+')}&ref=search_bar"
+        # save response
+        save_text_timestamp(query_url, 'a' ,str(update.message.chat_id), Path('../bot_images'))
+        # send message to telegram client
+        update.message.reply_text(query_url)
 
 
 def handle_photo(update, context):
