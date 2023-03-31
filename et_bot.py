@@ -147,7 +147,7 @@ def handle_message(update, context):
 
     # if search mode is etsy, send only query url to telegram client
     if response.json()['search_mode'] == 'etsy':
-        query_url = response.json()['etsy_sites']
+        query_url = response.json()['etsy_queries']
         # save response
         save_text_timestamp(query_url, 'a' ,str(update.message.chat_id), Path('../bot_images'))
         # send message to telegram client
@@ -169,7 +169,7 @@ def handle_message(update, context):
         img_byte_arr.seek(0)  # Reset the file pointer to the beginning
 
         # get etsy sites from response and add them as image captions
-        etsy_sites = response.json()['etsy_sites']
+        etsy_sites = response.json()['items_sites']
         # send resulting image to client
         context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr, caption=etsy_sites)
 
@@ -215,7 +215,7 @@ def handle_photo(update, context):
 
     # if search mode is etsy, send only query url to telegram client
     if response.json()['search_mode'] == 'etsy':
-        query_url = response.json()['etsy_sites']
+        query_url = response.json()['etsy_queries']
         # save response
         save_text_timestamp(query_url, 'a' ,str(update.message.chat_id), Path('../bot_images'))
         # send message to telegram client
@@ -237,7 +237,7 @@ def handle_photo(update, context):
         img_byte_arr.seek(0)  # Reset the file pointer to the beginning
 
         # get etsy sites from response and add them as image captions
-        etsy_sites = response.json()['etsy_sites']
+        etsy_sites = response.json()['items_sites']
         # send resulting image to client
         context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr,caption=etsy_sites)
 

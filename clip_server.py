@@ -7,7 +7,7 @@ from pathlib import Path
 import cv2
 
 from ClipSearcher import CLIPSearcher , create_clip_model, plot_images
-from utils import pil_to_base64, base64_to_pil, tags_from_df, etsy_sites_from_df, get_tags_for_etsy_query
+from utils import pil_to_base64, base64_to_pil, tags_from_df, etsy_sites_from_df, get_etsy_queries, get_item_names
 import base64
 
 
@@ -65,7 +65,7 @@ def process_clip_query():
 
  
     # use the right searcher for the search mode
-    if (search_mode == 'all') or (search_mode == 'etsy'):
+    if (search_mode == 'all') :
         # convert query to embeddings and prepare it for querying
         all_searcher.gen_query(query)
 
@@ -79,7 +79,7 @@ def process_clip_query():
 
         print('all', search_space)
 
-    else:
+    elif (search_mode == 'popular') or (search_mode == 'etsy'):
         # convert query to embeddings and prepare it for querying
         popular_searcher.gen_query(query)
         
@@ -97,18 +97,24 @@ def process_clip_query():
 
     # Get item tags from dataframe
     tags = tags_from_df(df_result)
+    # get item names
+    item_names = get_item_names(df_result)
+    print(item_names)
 
     # if search mode is etsy, return url for etsy query
     if search_mode == 'etsy':
         print('creating response url...')
-
-        query_url = get_tags_for_etsy_query(df_result, 3)
+        etsy_queries = get_etsy_queries(df_result)
         # set variables of response dictionary
-        etsy_sites = query_url
+        items_sites = ''
         # no image
         processed_img_str = ''
     
     else:
+        etsy_queries = ''
+        # Get items sites from dataframe
+        items_sites = etsy_sites_from_df(df_result)
+
         # if not, return tags, and items images an urls
         print('creating response image...')
 
@@ -117,19 +123,17 @@ def process_clip_query():
         # Convert the processed PIL image to a base64 encoded string
         processed_img_str = pil_to_base64(img_results)
 
-        # Get items sites from dataframe
-        etsy_sites = etsy_sites_from_df(df_result)
-
-
 
     # Respond with the processed image as a base64 encoded string
     # and the string with tags
     print('ready to make response')
     response = {
         "status": "success",
+        "item_names":  item_names,
         "search_mode": search_mode,
         "search_space": search_space,
-        "etsy_sites" : etsy_sites,
+        "items_sites" : items_sites,
+        "etsy_queries" : etsy_queries,
         "tags" : tags,
         "processed_image": processed_img_str
     }

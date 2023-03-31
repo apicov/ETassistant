@@ -2,6 +2,7 @@
 from PIL import Image
 import io
 import base64
+import random
 
 def pil_to_base64(pil_im):
     # Convert the PIL image to a base64 encoded string
@@ -42,6 +43,77 @@ def etsy_sites_from_df(df):
         sites += f"{i+1}.- https://www.etsy.com/de-en/listing/{row['ItemId']}/\n\n"
     return sites
 
+
+def get_first_n_tags(df, n):
+    # take the n tag s of each item and 
+    # put them in a list
+    tags  = []
+    for i, (df_index, row) in enumerate(df.iterrows()):
+        #get first n tags of set of tags in item
+        try: 
+            first_tags = ' '.join(row['Tags'].split('; ')[:n])
+        except KeyboardInterrupt:
+            # Handle the KeyboardInterrupt separately, if needed
+            print("\nCtrl+C detected. Exiting gracefully...")
+            exit()
+        except Exception as e:
+            # Handle other exceptions here
+            print(f"An unexpected error occurred: {e}")
+            first_tags = ' '.join(row['Tags'].split('; '))
+
+        tags.append(first_tags)
+        
+    return tags
+
+
+def get_rnd_tags(df, n):
+    # gets randomly n tags from all tags in all items in df
+    # gets tags strings from df and remove semicolon, then joined them with a space
+    tags_lists = df['Tags'].tolist()
+    # split each tags string and put everything on a list
+    tags_lists = [ x for i in tags_lists for x in i.split('; ')]
+    try:
+        # take n random samples from the list
+        random_tags = random.sample(tags_lists, n)
+    except KeyboardInterrupt:
+        # Handle the KeyboardInterrupt separately, if needed
+        print("\nCtrl+C detected. Exiting gracefully...")
+        exit()
+    except Exception as e:
+        # there is fewer than n tags available
+        random_tags = tags_lists
+    
+    # join them in a string
+    random_tags = ' '.join(random_tags)
+    return random_tags
+
+
+def get_etsy_queries(df):
+    # creates a set of queries for etsy from the tags in df
+    base_url = 'https://www.etsy.com/de-en/search?q={}&ref=search_bar'
+    # gets list of ntags from each item
+    items_tags =  get_first_n_tags(df, 4)
+    # get string of random tags gotten from all items in df
+    rnd_tags = get_rnd_tags(df, 4)
+    # add it to list of tags
+    items_tags += [rnd_tags]
+    # create string of etsy queries from tags
+    etsy_queries = ''
+    for i,tags in enumerate(items_tags):
+        query = base_url.format(tags.replace(' ','+'))
+        etsy_queries += f'{i+1}.- {query}\n\n'
+
+    return etsy_queries
+
+
+def get_item_names(df):
+    # joins all item names in a string
+    item_names = [ name for name in df['ItemName'].tolist()]
+    str_names = '\n\n'.join(item_names)
+    return str_names
+
+
+'''
 def get_tags_for_etsy_query(df, n, only_first=True):
     # take the n tag s of each item and 
     # puts it in a url for etsy search
@@ -71,3 +143,4 @@ def get_tags_for_etsy_query(df, n, only_first=True):
     # replace extra spaces with +
     jtags = jtags.replace(' ','+')
     return base_url.format(jtags)
+'''
