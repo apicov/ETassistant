@@ -143,15 +143,16 @@ def plot_images(df, images_path, with_distance=True, rows=False):
         bestseller_mark = '*Bestseller*\n\n' if row['IsBestseller'] else ''
 
     
-        out_message = f'''{bestseller_mark}Shop: {row['ShopName']}
-
-ItemID: {row['ItemId']}
+        out_message = f'''{i+1}.-
+        
+{bestseller_mark}Shop: {row['ShopName']}
 
 Title:
 {add_carriage_return(row['ItemName'], char_limit=25)}
 
 Reviews: {row['NumReviews']}  {row['Distance']:.4f}
 '''
+        #ItemID: {row['ItemId']}
         
         # Write image data on the side
         axarr[i].annotate(out_message, xy=(1.1, 0.5), xycoords='axes fraction', fontsize=60,

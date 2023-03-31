@@ -33,3 +33,11 @@ def tags_from_df(df):
         str_tags += f"--------{row['ShopName']}--------\n{tags}\n"
 
     return str_tags
+    
+def etsy_sites_from_df(df):
+    # create etsy url of every item in dataframe
+    # and put them on a string
+    sites = ''
+    for i, (df_index, row) in enumerate(df.iterrows()):
+        sites += f"{i+1}.- https://www.etsy.com/de-en/listing/{row['ItemId']}/\n\n"
+    return sites

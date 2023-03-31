@@ -7,7 +7,7 @@ from pathlib import Path
 import cv2
 
 from ClipSearcher import CLIPSearcher , create_clip_model, plot_images
-from utils import pil_to_base64, base64_to_pil, tags_from_df
+from utils import pil_to_base64, base64_to_pil, tags_from_df, etsy_sites_from_df
 import base64
 
 
@@ -51,6 +51,7 @@ app = Flask(__name__)
 # cointaning similar products from the complete database
 @app.route('/clip_query', methods=['POST'])
 def process_clip_query():
+    print('processing query ...')
     global search_mode
     global search_space
     #check if query is text or image
@@ -95,6 +96,8 @@ def process_clip_query():
 
     print(df_result)
 
+    print('creating response image...')
+
     # plot items in dataframe
     img_results = plot_images(df_result, images_path)
     # Convert the processed PIL image to a base64 encoded string
@@ -103,11 +106,16 @@ def process_clip_query():
     # Get item tags from dataframe
     tags = tags_from_df(df_result)
 
+    # Get items sites from dataframe
+    etsy_sites = etsy_sites_from_df(df_result)
+
     # Respond with the processed image as a base64 encoded string
     # and the string with tags
+    print('ready to make response')
     response = {
         "status": "success",
         "message": "Image received and processed successfully",
+        "etsy_sites" : etsy_sites,
         "tags" : tags,
         "processed_image": processed_img_str
     }

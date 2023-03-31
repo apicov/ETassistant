@@ -90,7 +90,7 @@ def help(update, context):
     /namespace - names space search
     /searchmode - show search mode
     """)
-
+    
 def set_search_popular(update, context): 
     msg = set_search_mode('popular')
     update.message.reply_text(msg)
@@ -153,8 +153,11 @@ def handle_message(update, context):
     img_byte_arr = BytesIO()
     r_im.save(img_byte_arr, format='JPEG')
     img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+
+    # get etsy sites from response and add them as image captions
+    etsy_sites = response.json()['etsy_sites']
     # send resulting image to client
-    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr)
+    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr, caption=etsy_sites)
 
 
 
@@ -208,8 +211,11 @@ def handle_photo(update, context):
     img_byte_arr = BytesIO()
     r_im.save(img_byte_arr, format='JPEG')
     img_byte_arr.seek(0)  # Reset the file pointer to the beginning
+
+    # get etsy sites from response and add them as image captions
+    etsy_sites = response.json()['etsy_sites']
     # send resulting image to client
-    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr)
+    context.bot.send_photo(chat_id=update.message.chat_id, photo=img_byte_arr,caption=etsy_sites)
 
     
 
