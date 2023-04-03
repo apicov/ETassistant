@@ -6,8 +6,8 @@ import pandas as pd
 from pathlib import Path
 import cv2
 
-from ClipSearcher import CLIPSearcher , create_clip_model, plot_images
-from utils import pil_to_base64, base64_to_pil, tags_from_df, etsy_sites_from_df, get_etsy_queries, get_item_names
+from ClipSearcher import CLIPSearcher, CLIPTagSearcher , create_clip_model, plot_images
+from utils import pil_to_base64, base64_to_pil, tags_from_df, etsy_sites_from_df, get_etsy_queries, get_item_names, tags2string
 import base64
 
 
@@ -16,7 +16,15 @@ pd.set_option("display.max_columns", 10)
 
 #open products data
 print('Loading data...')
+# load dataframe with all products and embeddings
 df_all = pd.read_parquet('./data/all_clip_embeddings.parquet')
+
+#load dataframe with single tags and single tags embeddings
+df_tags = pd.read_parquet('./data/all_single_tag_embeddings.parquet')
+# keep unique tags
+df_tags = df_tags.drop_duplicates(subset='Tags', keep='first')
+# use only tags of popular products
+df_popular_tags = df_tags[df_tags['NumReviews'] >= 100]
 
 # Filter dataframe to have only popular items
 # they must have 100 or more reviews
@@ -36,6 +44,8 @@ clip_model = create_clip_model()
 print('Creating clip model...')
 all_searcher = CLIPSearcher(df_all, clip_model=clip_model)
 popular_searcher = CLIPSearcher(df_popular, clip_model=clip_model)
+# create tags searcher (looks in database of single tags)
+tag_searcher = CLIPTagSearcher(df_popular_tags, clip_model=clip_model)
 
 # sets server for search in all the database or only popular items,, default all
 search_mode = 'all' #all, popular, etsy(etsy search searches in all in disk and uses tags to create etsy query)
@@ -63,65 +73,82 @@ def process_clip_query():
         txt = request.json['text']
         query = txt
 
- 
     # use the right searcher for the search mode
-    if (search_mode == 'all') :
-        # convert query to embeddings and prepare it for querying
-        all_searcher.gen_query(query)
-
-        # search for similar
-        if search_space == 'images':
-            df_result = all_searcher.search_in_images(3)
-        elif search_space == 'tags':
-            df_result = all_searcher.search_in_tags(3)
-        else:
-            df_result = all_searcher.search_in_names(3)
-
-        print('all', search_space)
-
-    elif (search_mode == 'popular') or (search_mode == 'etsy'):
-        # convert query to embeddings and prepare it for querying
-        popular_searcher.gen_query(query)
-        
-        # search for similar
-        if search_space == 'images':
-            df_result = popular_searcher.search_in_images(3)
-        elif search_space == 'tags':
-            df_result = popular_searcher.search_in_tags(3)
-        else:
-            df_result = popular_searcher.search_in_names(3)
-
-        print('popular', search_space)
-
-    print(df_result)
-
-    # Get item tags from dataframe
-    tags = tags_from_df(df_result)
-    # get item names
-    item_names = get_item_names(df_result)
-    print(item_names)
-
-    # if search mode is etsy, return url for etsy query
-    if search_mode == 'etsy':
-        print('creating response url...')
-        etsy_queries = get_etsy_queries(df_result)
-        # set variables of response dictionary
-        items_sites = ''
+    if (search_mode == 'tags') :
+        # in tagssearch mode tagsdatabase is used
+        # convert query to embeddings
+        tag_searcher.gen_query(query)
+        # search similar tags in embedding space
+        df_result = tag_searcher.search_in_tags(15)
+        # gets list of found tags
+        tags = tags2string(df_result)
+        # prepare other variables of response dict
+        # no item names
+        item_names = ''
         # no image
         processed_img_str = ''
-    
-    else:
+        items_sites = ''
         etsy_queries = ''
-        # Get items sites from dataframe
-        items_sites = etsy_sites_from_df(df_result)
 
-        # if not, return tags, and items images an urls
-        print('creating response image...')
+    else:
+        # use the right searcher for the search mode
+        if (search_mode == 'all') :
+            # convert query to embeddings and prepare it for querying
+            all_searcher.gen_query(query)
 
-        # plot items in dataframe
-        img_results = plot_images(df_result, images_path)
-        # Convert the processed PIL image to a base64 encoded string
-        processed_img_str = pil_to_base64(img_results)
+            # search for similar
+            if search_space == 'images':
+                df_result = all_searcher.search_in_images(3)
+            elif search_space == 'tags':
+                df_result = all_searcher.search_in_tags(3)
+            else:
+                df_result = all_searcher.search_in_names(3)
+
+            print('all', search_space)
+
+        elif (search_mode == 'popular') or (search_mode == 'etsy'):
+            # convert query to embeddings and prepare it for querying
+            popular_searcher.gen_query(query)
+            
+            # search for similar
+            if search_space == 'images':
+                df_result = popular_searcher.search_in_images(3)
+            elif search_space == 'tags':
+                df_result = popular_searcher.search_in_tags(3)
+            else:
+                df_result = popular_searcher.search_in_names(3)
+
+            print('popular', search_space)
+
+        print(df_result)
+
+        # Get item tags from dataframe
+        tags = tags_from_df(df_result)
+        # get item names
+        item_names = get_item_names(df_result)
+        print(item_names)
+
+        # if search mode is etsy, return url for etsy query
+        if search_mode == 'etsy':
+            print('creating response url...')
+            etsy_queries = get_etsy_queries(df_result)
+            # set variables of response dictionary
+            items_sites = ''
+            # no image
+            processed_img_str = ''
+        
+        else:
+            etsy_queries = ''
+            # Get items sites from dataframe
+            items_sites = etsy_sites_from_df(df_result)
+
+            # if not, return tags, and items images an urls
+            print('creating response image...')
+
+            # plot items in dataframe
+            img_results = plot_images(df_result, images_path)
+            # Convert the processed PIL image to a base64 encoded string
+            processed_img_str = pil_to_base64(img_results)
 
 
     # Respond with the processed image as a base64 encoded string
@@ -151,9 +178,12 @@ def set_search_mode():
     elif request.json['search_mode'] == 'popular':
         search_mode = 'popular'
         print('set search to popular')
-    else:
+    elif request.json['search_mode'] == 'etsy':
         search_mode = 'etsy'
         print('set search to etsy')
+    else:
+        search_mode = 'tags'
+        print('set search to tags')
 
     response = {
         "status": "success",

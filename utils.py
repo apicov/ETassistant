@@ -113,6 +113,14 @@ def get_item_names(df):
     return str_names
 
 
+def tags2string(df):
+    # get all tags in df and put them in a string
+    tags = df['Tags'].tolist()
+    # join adding carriage return between tags
+    tags_str = '\n'.join(tags)
+    return tags_str
+
+
 '''
 def get_tags_for_etsy_query(df, n, only_first=True):
     # take the n tag s of each item and 
